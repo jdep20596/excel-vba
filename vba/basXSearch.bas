@@ -41,9 +41,13 @@ Public Function xGetLastCell(ByVal wks) As Range
    
    If DEBUG_MODE Then On Error GoTo 0 Else On Error GoTo errHandler
    
-   If TypeName(wks) <> "Worksheet" Then Set wks = ThisWorkbook.Sheets(wks)
-   lLastCol = 1: lLastRow = 1
+   ' create worksheet object if needed
+   If TypeName(wks) <> "Worksheet" Then
+      If TypeName(wks) = "Range" Then Set wks = ThisWorkbook.Sheets(wks.Value)
+      If TypeName(wks) = "String" Then Set wks = ThisWorkbook.Sheets(wks)
+   End If
    
+   lLastCol = 1: lLastRow = 1
    With wks.UsedRange
       lLastCol = .Cells.Find(What:="*" _
          , After:=.Cells(1) _
@@ -70,8 +74,13 @@ Public Function xGetValue(ByVal wks, ByVal Row, ByVal Column, Optional ByVal Che
    
    If DEBUG_MODE Then On Error GoTo 0 Else On Error GoTo errHandler
    
+   ' create worksheet object if needed
+   If TypeName(wks) <> "Worksheet" Then
+      If TypeName(wks) = "Range" Then Set wks = ThisWorkbook.Sheets(wks.Value)
+      If TypeName(wks) = "String" Then Set wks = ThisWorkbook.Sheets(wks)
+   End If
+   
    If IsMissing(CheckIfNumeric) Then CheckIfNumeric = False
-   If TypeName(wks) <> "Worksheet" Then Set wks = ThisWorkbook.Sheets(wks)
   
    vValue = wks.Cells(Row, Column).Value
    vValue = IIf(CheckIfNumeric, IIf(IsNumeric(vValue), vValue, "#NAN"), vValue)
@@ -111,13 +120,16 @@ Public Function xSearch(ByVal wks, ByVal Search1, ByVal Column1, ParamArray Opti
    
    If DEBUG_MODE Then On Error GoTo 0 Else On Error GoTo errHandler
    '--------------------------------------------------------------------
-   ' extract obligatory main search parameters (sheet, search, col)
+   ' extract obligatory main search parameters
    '--------------------------------------------------------------------
-   ' extract obligatory search parameters
-   If TypeName(wks) <> "Worksheet" Then Set wks = ThisWorkbook.Sheets(wks)
-   If Search1 Like "\*\" Then Search1 = "*" & Mid(Search1, 2, Len(Search1) - 2) & "*"
-   Column1 = CLng(Column1)
+   ' create worksheet object if needed
+   If TypeName(wks) <> "Worksheet" Then
+      If TypeName(wks) = "Range" Then Set wks = ThisWorkbook.Sheets(wks.Value)
+      If TypeName(wks) = "String" Then Set wks = ThisWorkbook.Sheets(wks)
+   End If
    
+   Column1 = CLng(Column1)
+
    '--------------------------------------------------------------------
    ' extract optional sub search parameters and start/end rows
    '--------------------------------------------------------------------
@@ -142,12 +154,12 @@ Public Function xSearch(ByVal wks, ByVal Search1, ByVal Column1, ParamArray Opti
       End If
    End If
    
-   '--------------------------------------------------------------------------------
+   '--------------------------------------------------------------------
    ' find all user specified search patterns
-   ' Note: in case needed, the actual search speed could be reduced by 33%
-   '  + for each loop (forward search) is about 33% faster than index based search
-   '  + use VBA Array instead rngSearch (forward/backward search) gives also +33%
-   '--------------------------------------------------------------------------------
+   ' Note: If needed the xSearch time could be reduced by 33% using:
+   '  a) for each instead index based loop (only for forward search)
+   '  b) VBA Array instead rngSearch loop (forward/backward search)
+   '--------------------------------------------------------------------
    ' set search range for main and sub patterns
    Set rngSearch = wks.Range(wks.Cells(vStart, Column1), wks.Cells(vEnd, Column1))
    
@@ -168,7 +180,6 @@ Public Function xSearch(ByVal wks, ByVal Search1, ByVal Column1, ParamArray Opti
          For j = iFirstSubPatternIndex To UBound(OptionalArgs, 1) Step 3
             ' extract sub matches
             vSearchN = OptionalArgs(j)
-            If vSearchN Like "\*\" Then vSearchN = "*" & Mid(vSearchN, 2, Len(vSearchN) - 2) & "*"
             vColumnN = OptionalArgs(j + 1)
             vOffsetN = OptionalArgs(j + 2)
 
@@ -198,3 +209,5 @@ errArgs:
 errHandler:
    Call basXSearch.errorHandler(err, Source:="basXSearch.xSearch")
 End Function
+
+
